@@ -16,6 +16,7 @@ on:
         required: false
         default: "10000"
 
+  push:
 permissions: read-all
 
 jobs:
