@@ -1,16 +1,13 @@
 name: cicd
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions: read-all
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -25,8 +22,15 @@ jobs:
       - name: Build and test with Maven (cicd profile)
         run: mvn -B verify -Pcicd
 
+    strategy:
+      matrix:
+        os: &id001
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+      fail-fast: false
   w3c:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -40,3 +44,7 @@ jobs:
 
       - name: W3C WebDriver tests (Selenium containers)
         run: mvn -B verify -Pw3c -pl karate-core -am
+    strategy:
+      matrix:
+        os: *id001
+      fail-fast: false
