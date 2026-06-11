@@ -1,10 +1,7 @@
 name: cicd
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions: read-all
 
@@ -25,6 +22,8 @@ jobs:
       - name: Build and test with Maven (cicd profile)
         run: mvn -B verify -Pcicd
 
+    strategy:
+      fail-fast: false
   w3c:
     runs-on: ubuntu-latest
 
@@ -40,3 +39,5 @@ jobs:
 
       - name: W3C WebDriver tests (Selenium containers)
         run: mvn -B verify -Pw3c -pl karate-core -am
+    strategy:
+      fail-fast: false

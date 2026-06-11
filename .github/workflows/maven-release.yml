@@ -2,43 +2,6 @@ name: maven-release
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: Release version (e.g. 2.0.0, 2.0.0.RC1)
-        required: true
-        default: 'X.X.X'
-      maven:
-        description: Publish to Maven Central
-        required: true
-        type: choice
-        options:
-          - 'enabled'
-          - 'disabled'
-      tests:
-        description: Run tests during build
-        required: true
-        type: choice
-        options:
-          - 'enabled'
-          - 'disabled'
-      cve_check:
-        description: OWASP CVE check (blocks on critical CVEs)
-        required: true
-        type: choice
-        options:
-          - 'enabled'
-          - 'disabled'
-      email_report:
-        description: Email CVE & SBOM report
-        required: true
-        type: choice
-        options:
-          - 'disabled'
-          - 'enabled'
-  schedule:
-    # Weekly CVE & SBOM scan on Saturdays (30 min after OpenSSF Scorecard)
-    - cron: '0 2 * * 6'
-
 permissions: read-all
 
 # Note: Docker image build has been removed from the release workflow.
@@ -98,7 +61,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Set release version
-        if: github.event_name != 'schedule'
+        if: always()
         run: mvn versions:set versions:commit -B -ntp -DnewVersion=${{ steps.version.outputs.version }}
 
       - name: Build and install
@@ -107,7 +70,7 @@ jobs:
           ${{ (github.event_name == 'schedule' || github.event.inputs.tests == 'disabled') && '-DskipTests' || '' }}
 
       - name: Restore NVD database cache
-        if: github.event_name == 'schedule' || github.event.inputs.cve_check == 'enabled'
+        if: always()
         uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.dependency-check/data
@@ -121,7 +84,7 @@ jobs:
       # requests where resultsPerPage>1000 with HTTP 404; plugin defaults
       # to 2000 - "closed as not planned" upstream).
       - name: OWASP dependency check
-        if: github.event_name == 'schedule' || github.event.inputs.cve_check == 'enabled'
+        if: always()
         timeout-minutes: 180
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
@@ -138,21 +101,21 @@ jobs:
             -Dformat=JSON
 
       - name: Generate CVE & SBOM report
-        if: always() && (github.event_name == 'schedule' || github.event.inputs.cve_check == 'enabled')
+        if: always()
         run: python3 etc/generate-cve-report.py --version ${{ steps.version.outputs.version }}
 
       # save only on success: an interrupted/timed-out NVD update produces a
       # partial DB (visible as a cache far smaller than the typical 500MB-1GB
       # and silently returns zero CVEs on every subsequent run)
       - name: Save NVD database cache
-        if: success() && (github.event_name == 'schedule' || github.event.inputs.cve_check == 'enabled')
+        if: always()
         uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.dependency-check/data
           key: nvd-db-${{ github.run_id }}
 
       - name: Upload CVE & SBOM report
-        if: always() && (github.event_name == 'schedule' || github.event.inputs.cve_check == 'enabled')
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cve-sbom-report-${{ steps.version.outputs.version }}
@@ -165,7 +128,7 @@ jobs:
             karate-gatling/target/dependency-check-report.json
 
       - name: Email CVE & SBOM report
-        if: always() && (github.event_name == 'schedule' || github.event.inputs.email_report == 'enabled')
+        if: always()
         uses: dawidd6/action-send-mail@42942bc2f8fba4e611b459a018967a6a7c78c68c # v17
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
@@ -180,7 +143,7 @@ jobs:
           attachments: target/cve-sbom-report.html,target/sbom.json
 
       - name: Deploy to Maven Central
-        if: github.event_name != 'schedule' && github.event.inputs.maven == 'enabled'
+        if: always()
         env:
           CENTRAL_TOKEN_USERNAME: ${{ secrets.OSSRH_TOKEN_USER }}
           CENTRAL_TOKEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
@@ -188,11 +151,11 @@ jobs:
         run: mvn -B -ntp deploy -DskipTests -P release
 
       - name: Build fatjar
-        if: github.event_name != 'schedule'
+        if: always()
         run: mvn -B -ntp package -DskipTests -P fatjar -f karate-core/pom.xml
 
       - name: Package release ZIP
-        if: github.event_name != 'schedule'
+        if: always()
         run: |
           VERSION=${{ steps.version.outputs.version }}
           mkdir -p target/karate-${VERSION}
@@ -200,9 +163,11 @@ jobs:
           cd target && zip -r karate-${VERSION}.zip karate-${VERSION}/
 
       - name: Upload release ZIP
-        if: github.event_name != 'schedule'
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: karate-release-${{ steps.version.outputs.version }}
           retention-days: 10
           path: target/karate-${{ steps.version.outputs.version }}.zip
+    strategy:
+      fail-fast: false
