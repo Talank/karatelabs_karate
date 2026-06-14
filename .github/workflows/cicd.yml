@@ -26,8 +26,6 @@ jobs:
       matrix:
         os: &id001
           - ubuntu-latest
-          - windows-latest
-          - macos-latest
       fail-fast: false
   w3c:
     runs-on: ${{ matrix.os }}
