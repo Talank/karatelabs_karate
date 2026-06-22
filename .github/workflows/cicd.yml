@@ -21,7 +21,7 @@ jobs:
           cache: maven
 
       - name: Set up Docker
-        uses: crazy-max/ghaction-setup-docker@v3
+        uses: docker/setup-docker-action@v4
 
       - name: Build and test with Maven (cicd profile)
         run: mvn -B verify -Pcicd
@@ -47,7 +47,7 @@ jobs:
           cache: maven
 
       - name: Set up Docker
-        uses: crazy-max/ghaction-setup-docker@v3
+        uses: docker/setup-docker-action@v4
 
       - name: W3C WebDriver tests (Selenium containers)
         run: mvn -B verify -Pw3c -pl karate-core -am
