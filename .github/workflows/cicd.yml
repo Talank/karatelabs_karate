@@ -2,6 +2,7 @@ name: cicd
 
 on:
   workflow_dispatch:
+  push:
 
 permissions: read-all
 
