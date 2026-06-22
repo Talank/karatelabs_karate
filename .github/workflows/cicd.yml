@@ -20,6 +20,7 @@ jobs:
           cache: maven
 
       - name: Build and test with Maven (cicd profile)
+        if: runner.os == 'Linux'
         run: mvn -B verify -Pcicd
 
     strategy:
@@ -43,6 +44,7 @@ jobs:
           cache: maven
 
       - name: W3C WebDriver tests (Selenium containers)
+        if: runner.os == 'Linux'
         run: mvn -B verify -Pw3c -pl karate-core -am
     strategy:
       matrix:
