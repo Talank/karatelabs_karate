@@ -6,22 +6,12 @@ name: test262
 
 on:
   workflow_dispatch:
-    inputs:
-      only:
-        description: "Restrict to a path glob (empty = full suite)"
-        required: false
-        default: ""
-      timeout_ms:
-        description: "Per-test watchdog (ms)"
-        required: false
-        default: "10000"
-
 permissions: read-all
 
 jobs:
   test262:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -93,3 +83,9 @@ jobs:
             cat "$META" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+      fail-fast: false
