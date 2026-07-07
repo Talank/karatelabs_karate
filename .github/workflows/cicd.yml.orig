@@ -43,7 +43,6 @@ jobs:
 
       - name: W3C WebDriver tests (Selenium containers)
         run: mvn -B verify -Pw3c -pl karate-core -am
-        if: runner.arch != 'ARM64'
     strategy:
       matrix:
         os: *id001
